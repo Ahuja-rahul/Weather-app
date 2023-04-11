@@ -8,7 +8,7 @@
 import UIKit
 import CoreLocation
 
-class LocationScreenViewController: UIViewController, CLLocationManagerDelegate {
+class LocationScreenViewController: UIViewController, CLLocationManagerDelegate, UITextFieldDelegate {
 
     
     @IBOutlet weak var weatherConditionLabel: UILabel!
@@ -26,9 +26,7 @@ class LocationScreenViewController: UIViewController, CLLocationManagerDelegate 
     var tempType = ""
     var tempInC = ""
     var tempInF = ""
-    
-    //R
-    weak var delegate: LocationScreenViewControllerDelegate?
+    var delegate: LocationScreenDelegate?
     var responseData: WeatherResoponse?
 
     
@@ -38,9 +36,10 @@ class LocationScreenViewController: UIViewController, CLLocationManagerDelegate 
         locationManager.delegate = self
         locationManager.requestAlwaysAuthorization()
         locationManager.startUpdatingLocation()
+        searchTextField.delegate = self
         // Do any additional setup after loading the view.
     }
-    
+        
 
     @IBAction func onLocationTapped(_ sender: UIButton) {
         let latitude = locationManager.location!.coordinate.latitude
@@ -54,10 +53,10 @@ class LocationScreenViewController: UIViewController, CLLocationManagerDelegate 
         loadWeather(search: searchTextField.text)
     }
     
-    //R
+
     @IBAction func onSaveTapped(_ sender: UIBarButtonItem) {
         if let responseData = self.responseData {
-                    delegate?.didAddWeatherData(responseData)
+        delegate?.weatherResponseData(responseData)
                 }
                 dismiss(animated: true)
             }
@@ -99,10 +98,6 @@ class LocationScreenViewController: UIViewController, CLLocationManagerDelegate 
             }
             if let weatherResponse = self.parseJson(data: data){
                 self.responseData = weatherResponse
-//                print(weatherResponse.location.name)
-//                print(weatherResponse.current.temp_c)
-//                print(weatherResponse.forecast.forecastday[6].day.avgtemp_c)
-                //self.weatherResponseCode = weatherResponse.current.condition.code
                 DispatchQueue.main.async {
                     self.locationLabel.text = weatherResponse.location.name
                     self.weatherConditionLabel.text = weatherResponse.current.condition.text
@@ -117,7 +112,6 @@ class LocationScreenViewController: UIViewController, CLLocationManagerDelegate 
     }
     
     private func getURL(query: String) -> URL? {
-//      ,
         let baseURL = "https://api.weatherapi.com/v1/"
         let currentEndpoint = "forecast.json"
         let apiKey = "2e35e4136d7a4152b9b200010230804"
@@ -145,9 +139,10 @@ class LocationScreenViewController: UIViewController, CLLocationManagerDelegate 
     }
     
 }
-//R
-protocol LocationScreenViewControllerDelegate: AnyObject {
-    func didAddWeatherData(_ data: WeatherResoponse)
+
+protocol LocationScreenDelegate {
+    func weatherResponseData(_ data: WeatherResoponse)
+    
 }
 
 
@@ -158,6 +153,8 @@ struct WeatherResoponse: Decodable {
 }
 struct Location: Decodable{
     let name: String
+    let lat: Double
+    let lon: Double
 }
 
 struct Weather: Decodable {
@@ -174,6 +171,7 @@ struct Forecast: Decodable{
     let forecastday: [Forecastday]
 }
 struct Forecastday: Decodable{
+    let date: String
     let day: Day
 }
 struct Day: Decodable{
@@ -183,5 +181,10 @@ struct Day: Decodable{
     let mintemp_f: Float
     let avgtemp_c: Float
     let avgtemp_f: Float
+    let condition: Condition
+}
+
+struct Condition: Decodable{
+    let code: Int
 }
 
